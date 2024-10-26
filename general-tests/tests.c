@@ -11,11 +11,11 @@
 
 #include<linux/if_packet.h>
 #include<netinet/in.h>		 
-#include<netinet/if_ether.h>    // for ethernet header
-#include<netinet/ip.h>		// for ip header
-#include<netinet/udp.h>		// for udp header
+#include<netinet/if_ether.h>    
+#include<netinet/ip.h>		
+#include<netinet/udp.h>		
 #include<netinet/tcp.h>
-#include<arpa/inet.h>           // to avoid warning at inet_ntoa
+#include<arpa/inet.h>           
 
 
 int total,tcp,udp,icmp,igmp,other,iphdrlen;
@@ -56,7 +56,9 @@ int main()
         if ( (eth->h_source[0]==0x18) && (eth->h_source[1]==0xFD) && (eth->h_source[2]==0x74) && (eth->h_source[3]==0xC1) && (eth->h_source[4]==0x8E) && (eth->h_source[5]==0x4D)) {
             printf("\t|-Source Address	: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n",eth->h_source[0],eth->h_source[1],eth->h_source[2],eth->h_source[3],eth->h_source[4],eth->h_source[5]);
 	        printf("\t|-Destination Address	: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n",eth->h_dest[0],eth->h_dest[1],eth->h_dest[2],eth->h_dest[3],eth->h_dest[4],eth->h_dest[5]);
-        }
+			printf("\t|-Ethertype = %.4X\n\n", ntohs(eth->h_proto));
+
+		}
 
 
 	}
