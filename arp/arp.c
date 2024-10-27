@@ -31,6 +31,38 @@ struct L2frame {
   unsigned short payload_len;      
 }; 
 
+struct ARPpacket_raw {
+  unsigned short htype;
+  unsigned short ptype;  
+  unsigned char hlen;
+  unsigned char plen;
+  unsigned short oper;
+  unsigned short sha_01;
+  unsigned short sha_23;
+  unsigned short sha_45;
+  unsigned short spa_01;
+  unsigned short spa_23;
+  unsigned short tha_01;
+  unsigned short tha_23;
+  unsigned short tha_45;
+  unsigned short tpa_01;
+  unsigned short tpa_23;
+};
+
+struct ARPpacket {
+  unsigned short htype;
+  unsigned short ptype;  
+  unsigned char hlen;
+  unsigned char plen;
+  unsigned short oper;
+  unsigned long sha;
+  // spa -> Most significant byte for the ip is first element
+  unsigned char spa [4];
+  unsigned long tha;
+  // tpa -> Most significant byte for the ip is first element  
+  unsigned char tpa [4];
+};
+
 int main()
 {
 
@@ -39,10 +71,12 @@ int main()
 	memset(buffer,0,65536);
     struct ethhdr *eth = (struct ethhdr *)(buffer);
     struct L2frame mikrotik_frame;
+    struct ARPpacket_raw * parp_raw;
+    struct ARPpacket recv_packet;
     int i;
 
 
-	printf("Listening to Mirkotik MAC address .... \n");
+	printf("Listening to Mirkotik MAC address .... \n\n");
 
 	sock_r=socket(AF_PACKET,SOCK_RAW,htons(ETH_P_ALL)); 
 	if(sock_r<0)
@@ -88,9 +122,38 @@ int main()
             if (mikrotik_frame.ether_type == 0x0806 ) {
                 printf("Ethertype is ARP\n");
             }
+            parp_raw = (struct ARPpacket_raw *) mikrotik_frame.p_payload;
+            recv_packet.htype = ntohs(parp_raw->htype);
+            recv_packet.ptype = ntohs(parp_raw->ptype);
+            recv_packet.hlen = parp_raw->hlen;
+            recv_packet.plen = parp_raw->plen;
+            recv_packet.oper = ntohs(parp_raw->oper);            
+            recv_packet.sha = ntohs(parp_raw->sha_45);
+            recv_packet.sha = ((unsigned long) ntohs(parp_raw->sha_23)) << 16 | recv_packet.sha;
+            recv_packet.sha = ((unsigned long) ntohs(parp_raw->sha_01)) << 32 | recv_packet.sha;
+            recv_packet.tha = ntohs(parp_raw->tha_45);
+            recv_packet.tha = ((unsigned long) ntohs(parp_raw->tha_23)) << 16 | recv_packet.tha;
+            recv_packet.tha = ((unsigned long) ntohs(parp_raw->tha_01)) << 32 | recv_packet.tha;
 
+            recv_packet.spa[0] = (unsigned char) ( (ntohs(parp_raw->spa_01) & 0xFF00) >> 8 );
+            recv_packet.spa[1] = (unsigned char) ( (ntohs(parp_raw->spa_01) & 0xFF) );
+            recv_packet.spa[2] = (unsigned char) ( (ntohs(parp_raw->spa_23) & 0xFF00) >> 8 );
+            recv_packet.spa[3] = (unsigned char) ( (ntohs(parp_raw->spa_23) & 0xFF) );
+
+            recv_packet.tpa[0] = (unsigned char) ( (ntohs(parp_raw->tpa_01) & 0xFF00) >> 8 );
+            recv_packet.tpa[1] = (unsigned char) ( (ntohs(parp_raw->tpa_01) & 0xFF) );
+            recv_packet.tpa[2] = (unsigned char) ( (ntohs(parp_raw->tpa_23) & 0xFF00) >> 8 );
+            recv_packet.tpa[3] = (unsigned char) ( (ntohs(parp_raw->tpa_23) & 0xFF) );
+
+            printf("oper: %X\n", recv_packet.oper);
+            printf("sha: %lX\n", recv_packet.sha);
+            printf("tha: %lX\n", recv_packet.tha);
+            printf("spa: %d.%d.%d.%d\n", recv_packet.spa[0] , recv_packet.spa[1] , recv_packet.spa[2] ,recv_packet.spa[3]);
+            printf("tpa: %d.%d.%d.%d\n", recv_packet.tpa[0] , recv_packet.tpa[1] , recv_packet.tpa[2] ,recv_packet.tpa[3]);
             printf("\n");
- 
+
+
+            
 		}
 
 
